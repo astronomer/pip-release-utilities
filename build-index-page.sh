@@ -9,6 +9,12 @@ folder="${2-simple}"
 bucket="${bucket%/}"
 folder="${folder%/}"
 
+# Make sure we have gnu-sed!
+if ! sed --version &> /dev/null; then
+  echo "You don't appear to have GNU sed! Exiting.";
+  exit 1;
+fi
+
 "$(dirname "$0")/gsutil-auth-helper.sh"
 
 while [[ -n "$folder" ]]; do
