@@ -12,9 +12,12 @@ folder="${folder%/}"
 "$(dirname "$0")/gsutil-auth-helper.sh"
 
 while [[ -n "$folder" ]]; do
-  pip install requirements.txt
-  python generate_index_html.py $bucket $folder> index.html
-
+  pip install -r requirements.txt
+  if [[ $folder == 'apache-airflow-providers-cncf-kubernetes' ]]; then
+    python generate_index_html.py $bucket $folder --fall-back-to-public-pip --private-pip-ranges "<7.5" > index.html
+  else
+    python generate_index_html.py $bucket $folder> index.html
+  fi
   gsutil -h 'Content-Type: text/html' -h "Cache-Control:no-cache,max-age=0" cp -a public-read index.html "gs://$bucket/$folder/index.html"
 
   next_folder="${folder%/*}"
