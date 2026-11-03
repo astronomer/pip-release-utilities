@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import datetime as dt
+from collections.abc import Mapping
 
 SHA256_KEY = "sha256"
 REQUIRES_PYTHON_KEY = "requires-python"
@@ -9,7 +10,7 @@ CORE_METADATA_SHA256_KEY = "core-metadata-sha256"
 YANKED_KEY = "yanked"
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class IndexFile:
     """A file in a project folder, with the details its link on the page needs."""
 
@@ -22,7 +23,9 @@ class IndexFile:
     yanked: str | None = None
 
     @classmethod
-    def from_object(cls, filename, size, uploaded, object_metadata):
+    def from_object(
+        cls, filename: str, size: int, uploaded: dt.datetime, object_metadata: Mapping[str, str]
+    ) -> IndexFile:
         return cls(
             filename,
             size,
@@ -34,19 +37,19 @@ class IndexFile:
         )
 
     @property
-    def version(self):
+    def version(self) -> str | None:
         return version_of(self.filename)
 
     @property
-    def is_dist(self):
+    def is_dist(self) -> bool:
         return self.version is not None
 
     @property
-    def is_dev_build(self):
-        return self.is_dist and ".dev" in self.version.partition("+")[0]
+    def is_dev_build(self) -> bool:
+        return self.version is not None and ".dev" in self.version.partition("+")[0]
 
 
-def version_of(filename):
+def version_of(filename: str) -> str | None:
     if filename.endswith(".whl"):
         # name-version(-build)?-python-abi-platform.whl, where the build tag is optional
         parts = filename.removesuffix(".whl").split("-")

@@ -15,4 +15,7 @@ line-length = 120
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "B", "UP", "I", "SIM", "RUF", "C4", "PIE", "RET", "PTH", "N", "PLW"]
+select = ["E", "F", "W", "B", "UP", "I", "SIM", "RUF", "C4", "PIE", "RET", "PTH", "N", "PLW", "ANN"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN"]

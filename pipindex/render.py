@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 import datetime as dt
 import html
+from collections.abc import Iterable
+
+from .files import IndexFile
 
 
-def render_page(files):
+def render_page(files: Iterable[IndexFile]) -> bytes:
     # astro reads each line's upload time and link, so the size, time, link layout stays.
     lines = ["<!DOCTYPE html><html><head><title>Astronomer Python Packages</title></head><body><pre>"]
     lines += [f"{human_size(f.size):>10}  {timestamp(f.uploaded)}  {link(f)}" for f in files]
@@ -10,9 +15,9 @@ def render_page(files):
     return ("\n".join(lines) + "\n").encode()
 
 
-def link(file):
+def link(file: IndexFile) -> str:
     href = file.filename
-    attributes = {}
+    attributes: dict[str, str] = {}
 
     if file.is_dist:
         attributes["data-upload-time"] = timestamp(file.uploaded)
@@ -32,7 +37,7 @@ def link(file):
     return f'<a href="{html.escape(href)}"{rendered}>{html.escape(file.filename)}</a>'
 
 
-def human_size(size):
+def human_size(size: int) -> str:
     if size < 1024:
         return f"{size} B"
 
@@ -44,5 +49,5 @@ def human_size(size):
     return f"{value / 1024:.2f} TiB"
 
 
-def timestamp(moment):
+def timestamp(moment: dt.datetime) -> str:
     return moment.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
