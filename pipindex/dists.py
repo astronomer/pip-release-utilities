@@ -17,6 +17,7 @@ def inspect_dist(store, folder, file):
     """Work out a dist's hash, Python requirement and core metadata, and store them on its object."""
     key = f"{folder}/{file.filename}"
     log.info("inspecting %s", key)
+
     digest = hashlib.sha256()
     try:
         with store.open(key) as content:
@@ -31,6 +32,7 @@ def inspect_dist(store, folder, file):
     file = dataclasses.replace(file, sha256=digest.hexdigest())
     if core_metadata:
         file.requires_python = email.message_from_bytes(core_metadata).get("Requires-Python")
+
     # PEP 658 serves core metadata for wheels only; an sdist's PKG-INFO may not match what it builds.
     if core_metadata and file.filename.endswith(".whl"):
         store.write(key + CORE_METADATA_SUFFIX, core_metadata, "text/plain", FILE_CACHE_CONTROL)
@@ -53,10 +55,12 @@ def read_core_metadata(filename, content):
             for member in archive.namelist():
                 if member.count("/") == 1 and member.endswith(wanted):
                     return archive.read(member)
+
     if filename.endswith(".tar.gz"):
         with tarfile.open(fileobj=content) as archive:
             for member in archive:
                 if member.name.count("/") == 1 and member.name.endswith("/PKG-INFO"):
                     extracted = archive.extractfile(member)
                     return extracted.read() if extracted else None
+
     return None

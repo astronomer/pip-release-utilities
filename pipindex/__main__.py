@@ -33,6 +33,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     store = LocalStore(args.bucket) if args.local else GcsStore(args.bucket.strip("/"))
+
     try:
         args.run(store, args)
     except subprocess.CalledProcessError as e:

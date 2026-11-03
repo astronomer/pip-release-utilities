@@ -13,6 +13,7 @@ def render_page(files):
 def link(file):
     href = file.filename
     attributes = {}
+
     if file.is_dist:
         attributes["data-upload-time"] = timestamp(file.uploaded)
         attributes["data-size"] = str(file.size)
@@ -26,6 +27,7 @@ def link(file):
             attributes["data-dist-info-metadata"] = f"sha256={file.core_metadata_sha256}"
         if file.yanked is not None:
             attributes["data-yanked"] = file.yanked
+
     rendered = "".join(f' {key}="{html.escape(value)}"' for key, value in attributes.items())
     return f'<a href="{html.escape(href)}"{rendered}>{html.escape(file.filename)}</a>'
 
@@ -33,6 +35,7 @@ def link(file):
 def human_size(size):
     if size < 1024:
         return f"{size} B"
+
     value = float(size)
     for unit in ("KiB", "MiB", "GiB"):
         value /= 1024

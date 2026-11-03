@@ -51,8 +51,10 @@ def version_of(filename):
         # name-version(-build)?-python-abi-platform.whl, where the build tag is optional
         parts = filename.removesuffix(".whl").split("-")
         return parts[1] if len(parts) in (5, 6) else None
+
     for suffix in (".tar.gz", ".zip"):
         if filename.endswith(suffix):
             name, _, version = filename.removesuffix(suffix).rpartition("-")
             return version if name and version else None
+
     return None
