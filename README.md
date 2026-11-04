@@ -18,6 +18,19 @@ The tool works out a file's hash, Python requirement and metadata once, and stor
 
 A file never changes once uploaded, so files and `.metadata` files get `Cache-Control: public,max-age=31536000,immutable`. Pages get `no-cache`.
 
+## How pip.astronomer.io is served
+
+A Google Cloud load balancer with Cloud CDN serves the bucket. Its URL map gives the index two roots:
+
+| Root | A project in the bucket | Any other name | Use it |
+|---|---|---|---|
+| `/v2/` | the project's page | a 302 to `https://pypi.org/simple/<name>/` | as the only index, so that pip or uv gets other packages from PyPI |
+| `/astro/` | the same page as under `/v2/` | 404 | next to PyPI, for example in an Artifactory virtual index or as a second uv index |
+
+`/v2/` routes each project with its own rule, and sends every other name to PyPI. **To add a project, add a `/v2/<project>/*` rule to the URL map.** Without the rule, `/v2/<project>/` redirects to PyPI, and resolvers install whatever PyPI has under that name. `/astro/` uses one rule that rewrites `/astro/` to `/v2/`, so a new project works there with no change.
+
+The CDN passes the bucket's `Cache-Control` through to clients, so files are cached for a year and pages are not cached. It compresses pages and `.metadata` files with gzip or Brotli for clients that ask for it.
+
 ## Requirements
 
 - Python 3.9 or newer, with no packages to install. Run `python3 -m pipindex` from the repository root.
