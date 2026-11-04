@@ -20,16 +20,14 @@ A file never changes once uploaded, so files and `.metadata` files get `Cache-Co
 
 ## How pip.astronomer.io is served
 
-A Google Cloud load balancer with Cloud CDN serves the bucket. Its URL map gives the index two roots:
+The load balancer in front of the bucket gives the index two roots:
 
 | Root | A project in the bucket | Any other name | Use it |
 |---|---|---|---|
-| `/v2/` | the project's page | a 302 to `https://pypi.org/simple/<name>/` | as the only index, so that pip or uv gets other packages from PyPI |
-| `/astro/` | the same page as under `/v2/` | 404 | next to PyPI, for example in an Artifactory virtual index or as a second uv index |
+| `/v2/` | the project's page | a 302 to PyPI | as the only index |
+| `/astro/` | the same page | 404 | next to PyPI, for example in an Artifactory virtual index |
 
-`/v2/` routes each project with its own rule, and sends every other name to PyPI. **To add a project, add a `/v2/<project>/*` rule to the URL map.** Without the rule, `/v2/<project>/` redirects to PyPI, and resolvers install whatever PyPI has under that name. `/astro/` uses one rule that rewrites `/astro/` to `/v2/`, so a new project works there with no change.
-
-The CDN passes the bucket's `Cache-Control` through to clients, so files are cached for a year and pages are not cached. It compresses pages and `.metadata` files with gzip or Brotli for clients that ask for it.
+**To add a project, add a `/v2/<project>/*` rule to the load balancer's URL map.** Without it, `/v2/<project>/` redirects to PyPI, and resolvers install whatever PyPI has under that name. `/astro/` needs no change.
 
 ## Requirements
 
