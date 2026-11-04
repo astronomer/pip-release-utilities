@@ -55,7 +55,8 @@ def inspect_dist(store: Store, folder: str, file: IndexFile) -> IndexFile:
         CORE_METADATA_SHA256_KEY: file.core_metadata_sha256,
     }
     # Files uploaded with gsutil cp get the bucket's default cache header, so set it here too.
-    store.update_object_metadata(key, {k: v for k, v in object_metadata.items() if v}, FILE_CACHE_CONTROL)
+    # The hold stops anyone from overwriting the file, which would break every lock that records its hash.
+    store.update_object_metadata(key, {k: v for k, v in object_metadata.items() if v}, FILE_CACHE_CONTROL, hold=True)
     return file
 
 

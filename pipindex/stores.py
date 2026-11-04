@@ -23,7 +23,9 @@ class Store(Protocol):
 
     def write(self, key: str, data: bytes, content_type: str | None, cache_control: str | None) -> None: ...
 
-    def update_object_metadata(self, key: str, values: Mapping[str, str], cache_control: str | None) -> None: ...
+    def update_object_metadata(
+        self, key: str, values: Mapping[str, str], cache_control: str | None, *, hold: bool = False
+    ) -> None: ...
 
 
 class GcsStore:
@@ -56,8 +58,13 @@ class GcsStore:
         flags = [f"--content-type={content_type}", f"--cache-control={cache_control}", "--predefined-acl=publicRead"]
         self._gcloud("cp", *flags, "-", self._url(key), stdin=data)
 
-    def update_object_metadata(self, key: str, values: Mapping[str, str], cache_control: str | None) -> None:
-        flags = [f"--cache-control={cache_control}", "--update-custom-metadata=" + gcloud_dict_arg(values)]
+    def update_object_metadata(
+        self, key: str, values: Mapping[str, str], cache_control: str | None, *, hold: bool = False
+    ) -> None:
+        flags = [f"--cache-control={cache_control}"]
+        if hold:
+            flags.append("--temporary-hold")
+        flags.append("--update-custom-metadata=" + gcloud_dict_arg(values))
         self._gcloud("objects", "update", self._url(key), *flags)
 
     def _url(self, key: str) -> str:
@@ -83,7 +90,7 @@ def gcloud_dict_arg(values: Mapping[str, str]) -> str:
 
 
 class LocalStore:
-    """A folder on disk that stands in for the bucket, with object metadata in .object-metadata/."""
+    """A folder on disk that stands in for the bucket, with object metadata and holds in .object-metadata/."""
 
     def __init__(self, root: str | Path) -> None:
         self.root = Path(root)
@@ -107,20 +114,31 @@ class LocalStore:
         return (self.root / key).open("rb")
 
     def write(self, key: str, data: bytes, content_type: str | None, cache_control: str | None) -> None:
+        if self._hold_path(key).exists():
+            raise PermissionError(f"{key} is under a temporary hold")
+
         target = self.root / key
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
         # GCS drops an object's custom metadata when the object is overwritten.
         self._metadata_path(key).unlink(missing_ok=True)
 
-    def update_object_metadata(self, key: str, values: Mapping[str, str], cache_control: str | None) -> None:
+    def update_object_metadata(
+        self, key: str, values: Mapping[str, str], cache_control: str | None, *, hold: bool = False
+    ) -> None:
         merged = {**self._object_metadata(key), **values}
         target = self._metadata_path(key)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(merged))
 
+        if hold:
+            self._hold_path(key).touch()
+
     def _metadata_path(self, key: str) -> Path:
         return self.root / ".object-metadata" / (key + ".json")
+
+    def _hold_path(self, key: str) -> Path:
+        return self.root / ".object-metadata" / (key + ".hold")
 
     def _object_metadata(self, key: str) -> dict[str, str]:
         target = self._metadata_path(key)
