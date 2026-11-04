@@ -12,7 +12,7 @@ Each project folder, such as `v2/apache-airflow`, holds the files and an `index.
 
 Each line keeps the old layout, size then upload time then link, because `astro` reads the upload times from it.
 
-The page leaves out dev builds more than 60 days old, such as `3.3.2.dev9+astro.1`. The file stays in the bucket, so a lock that already records it still installs it. A dev build drops off at the first page write for its folder after it turns 60 days old.
+The page leaves out dev builds more than 60 days old, such as `3.3.2.dev9+astro.1`. The file stays in the bucket, so `uv sync` still installs it from a `uv.lock` that already records it. Anything that resolves again fails: `uv lock`, `uv add`, or a requirements file that pins the dev build. A dev build drops off at the first page write for its folder after it turns 60 days old.
 
 The tool works out a file's hash, Python requirement and metadata once, and stores them as custom metadata on the file's GCS object. Page writes read that metadata, so they do not download the files again.
 
@@ -32,7 +32,7 @@ After a CI job uploads files to a project folder, write the folder's page:
 ./build-index-page.sh pip.astronomer.io v2/<project>
 ```
 
-The script signs in with `gsutil-auth-helper.sh`, then runs `python3 -m pipindex page`, which inspects each file that has no stored metadata yet. The folder defaults to `simple`.
+The script signs in with `gsutil-auth-helper.sh`, then runs `python3 -m pipindex page`, which inspects each file that has no stored metadata yet.
 
 Never upload a new file under a name the index already has. Locks record each file's hash, so a file that changes breaks every lock that has it. To pull a bad file, yank it.
 

@@ -58,6 +58,18 @@ def make_wheel(folder, name, version, requires_python=">=3.9"):
     return path
 
 
+def make_damaged_wheel(folder, name, version):
+    member = f"{name.replace('-', '_')}-{version}.dist-info/METADATA"
+    path = Path(folder) / f"{name.replace('-', '_')}-{version}-py3-none-any.whl"
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr(member, metadata_text(name, version, ">=3.9") * 50)
+    data = bytearray(path.read_bytes())
+    start = 30 + len(member)  # past the local file header, at the deflate stream
+    data[start : start + 20] = b"\xff" * 20
+    path.write_bytes(data)
+    return path
+
+
 def make_sdist(folder, name, version, requires_python=">=3.10"):
     top = f"{name.replace('-', '_')}-{version}"
     path = Path(folder) / f"{top}.tar.gz"
@@ -182,13 +194,18 @@ class PageTest(Fixture):
         self.yank(wheel.name, "broken | build")
         self.assertEqual(self.links()[wheel.name]["data-yanked"], "broken | build")
 
-    def test_page_lists_a_file_it_cannot_read_without_a_hash(self):
-        broken, wheel = "demo_pkg-0.9-py3-none-any.whl", make_wheel(self.dists, "demo-pkg", "1.0")
-        self.store.write(f"{FOLDER}/{broken}", b"not a zip", None, None)
-        self.store.write(f"{FOLDER}/{wheel.name}", wheel.read_bytes(), None, None)
+    def test_page_lists_files_it_cannot_read_without_a_hash(self):
+        not_a_zip, wheel = "demo_pkg-0.9-py3-none-any.whl", make_wheel(self.dists, "demo-pkg", "1.0")
+        damaged = make_damaged_wheel(self.dists, "demo-pkg", "0.8")
+        self.store.write(f"{FOLDER}/{not_a_zip}", b"not a zip", None, None)
+        for path in (damaged, wheel):
+            self.store.write(f"{FOLDER}/{path.name}", path.read_bytes(), None, None)
+
         with self.assertLogs("pipindex", "WARNING"):
             pages.write_page(self.store, FOLDER)
-        self.assertEqual(self.links()[broken]["href"], broken)
+
+        self.assertEqual(self.links()[not_a_zip]["href"], not_a_zip)
+        self.assertEqual(self.links()[damaged.name]["href"], damaged.name)
         self.assertEqual(self.links()[wheel.name]["href"], f"{wheel.name}#sha256={sha256(wheel)}")
 
     def test_backfill_writes_each_project_page(self):

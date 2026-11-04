@@ -25,15 +25,15 @@ def inspect_dist(store: Store, folder: str, file: IndexFile) -> IndexFile:
     log.info("inspecting %s", key)
 
     digest = hashlib.sha256()
-    try:
-        with store.open(key) as content:
-            for chunk in iter(lambda: content.read(1 << 20), b""):
-                digest.update(chunk)
-            content.seek(0)
+    with store.open(key) as content:
+        for chunk in iter(lambda: content.read(1 << 20), b""):
+            digest.update(chunk)
+        content.seek(0)
+        try:
             core_metadata = read_core_metadata(file.filename, content)
-    except (zipfile.BadZipFile, tarfile.TarError, EOFError) as e:
-        log.warning("cannot read %s, so its link has no hash: %s", key, e)
-        return file
+        except Exception as e:  # a damaged archive can fail in many ways, such as zlib.error
+            log.warning("cannot read %s, so its link has no hash: %s", key, e)
+            return file
 
     requires_python = email.message_from_bytes(core_metadata).get("Requires-Python") if core_metadata else None
 

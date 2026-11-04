@@ -3,7 +3,7 @@
 set -euo pipefail
 
 bucket="${1?Missing bucket name argument}"
-folder="${2-simple}"
+folder="${2?Missing project folder argument, such as v2/apache-airflow}"
 
 "$(dirname "$0")/gsutil-auth-helper.sh"
 
