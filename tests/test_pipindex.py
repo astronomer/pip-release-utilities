@@ -208,6 +208,12 @@ class PageTest(Fixture):
         self.assertEqual(self.links()[damaged.name]["href"], damaged.name)
         self.assertEqual(self.links()[wheel.name]["href"], f"{wheel.name}#sha256={sha256(wheel)}")
 
+    def test_inspected_file_cannot_be_overwritten(self):
+        wheel = make_wheel(self.dists, "demo-pkg", "1.0")
+        self.upload(wheel)
+        with self.assertRaises(PermissionError):
+            self.store.write(f"{FOLDER}/{wheel.name}", b"other bytes", None, None)
+
     def test_backfill_writes_each_project_page(self):
         wheel = make_wheel(self.dists, "demo-pkg", "1.0")
         self.store.write(f"{FOLDER}/{wheel.name}", wheel.read_bytes(), None, None)
@@ -287,6 +293,7 @@ class GcsStoreTest(Fixture):
         )
         self.assertIn(f"--cache-control={dists.FILE_CACHE_CONTROL}", metadata[1])
         self.assertIn(f"--cache-control={dists.FILE_CACHE_CONTROL}", update[1])
+        self.assertIn("--temporary-hold", update[1])
         self.assertIn(f"--update-custom-metadata=^|^sha256={sha256(self.wheel)}|requires-python=>=3.9|", update[1][-1])
         self.assertIn("--content-type=text/html", page[1])
         self.assertIn(f"{self.wheel.name}#sha256={sha256(self.wheel)}", page[2])

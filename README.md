@@ -34,7 +34,14 @@ After a CI job uploads files to a project folder, write the folder's page:
 
 The script signs in with `gsutil-auth-helper.sh`, then runs `python3 -m pipindex page`, which inspects each file that has no stored metadata yet.
 
-Never upload a new file under a name the index already has. Locks record each file's hash, so a file that changes breaks every lock that has it. To pull a bad file, yank it.
+Never upload a new file under a name the index already has. Locks record each file's hash, so a file that changes breaks every lock that has it. To stop this, the first page write after an upload puts a temporary hold on each dist, and GCS then refuses to overwrite or delete it. To pull a bad file, yank it.
+
+To delete a file, first remove its hold:
+
+```bash
+gcloud storage objects update gs://pip.astronomer.io/v2/<project>/<filename> --no-temporary-hold
+gcloud storage rm gs://pip.astronomer.io/v2/<project>/<filename>
+```
 
 ## Yank
 
