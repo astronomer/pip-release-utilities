@@ -41,6 +41,7 @@ class GcsStore:
                 o.get("metadata") or {},
             )
             for o in json.loads(listing or b"[]")
+            if not o["name"].endswith("/")  # an empty placeholder object named after the folder
         ]
         return sorted(files, key=lambda f: f.filename)
 

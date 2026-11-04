@@ -252,7 +252,10 @@ class GcsStoreTest(Fixture):
         gcloud.chmod(0o755)
         self.log = self.tmp / "gcloud.log"
         self.wheel = make_wheel(self.dists, "demo-pkg", "1.0")
-        listing = [{"name": f"{FOLDER}/{self.wheel.name}", "size": "100", "timeCreated": "2025-01-02T03:04:05.000Z"}]
+        listing = [
+            {"name": f"{FOLDER}/", "size": "0", "timeCreated": "2025-01-01T00:00:00.000Z"},
+            {"name": f"{FOLDER}/{self.wheel.name}", "size": "100", "timeCreated": "2025-01-02T03:04:05.000Z"},
+        ]
         env = {
             "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
             "FAKE_GCLOUD_LOG": str(self.log),
@@ -287,6 +290,7 @@ class GcsStoreTest(Fixture):
         self.assertIn(f"--update-custom-metadata=^|^sha256={sha256(self.wheel)}|requires-python=>=3.9|", update[1][-1])
         self.assertIn("--content-type=text/html", page[1])
         self.assertIn(f"{self.wheel.name}#sha256={sha256(self.wheel)}", page[2])
+        self.assertNotIn('href=""', page[2])
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
