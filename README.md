@@ -18,6 +18,17 @@ The tool works out a file's hash, Python requirement and metadata once, and stor
 
 A file never changes once uploaded, so files and `.metadata` files get `Cache-Control: public,max-age=31536000,immutable`. Pages get `no-cache`.
 
+## How pip.astronomer.io is served
+
+The load balancer in front of the bucket gives the index two roots:
+
+| Root | A project in the bucket | Any other name | Use it |
+|---|---|---|---|
+| `/v2/` | the project's page | a 302 to PyPI | as the only index |
+| `/astro/` | the same page | 404 | next to PyPI, for example in an Artifactory virtual index |
+
+**To add a project, add a `/v2/<project>/*` rule to the load balancer's URL map.** Without it, `/v2/<project>/` redirects to PyPI, and resolvers install whatever PyPI has under that name. `/astro/` needs no change.
+
 ## Requirements
 
 - Python 3.9 or newer, with no packages to install. Run `python3 -m pipindex` from the repository root.
